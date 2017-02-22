@@ -42,14 +42,14 @@ type ContentFeedback = {mark: string; feedback: string}
 type ContentSection = {depth: int; title: string; points: int}
 
 type FormattedContent =
-    | FormattedSection of ContentSection
+    | FormattedSection  of ContentSection
     | FormattedQuestion of ContentQuestion
     | FormattedFeedback of ContentFeedback
     | FormattedEmpty
     | FormattedError
 
 type FormattedFile =
-    | Lines of FormattedContent list
+    | FormattedLines of FormattedContent list
 
 type FormatLineType =
     | Section
@@ -67,9 +67,9 @@ let rec formatFeedback (line: string) =
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
         match res.[1] with
-        | "+" -> FormattedFeedback({mark = mark_feedback_good;   feedback = res.[2]})
-        | "-" -> FormattedFeedback({mark = mark_feedback_bad;    feedback = res.[2]})
-        | "?" -> FormattedFeedback({mark = mark_feedback_unsure; feedback = res.[2]})
+        | "+" -> FormattedFeedback ({mark = mark_feedback_good;   feedback = res.[2]})
+        | "-" -> FormattedFeedback ({mark = mark_feedback_bad;    feedback = res.[2]})
+        | "?" -> FormattedFeedback ({mark = mark_feedback_unsure; feedback = res.[2]})
         | _   -> raise (MyFormatException "Internal error: Unexpected symbol in format feedback")
     else
         raise (MyFormatException "Section feedback is malformed")
@@ -118,25 +118,42 @@ let formatFile (path: string) =
 // Build a recursive tree type from a formatted records buffer
 exception MyParseException of string
 
-type ParsedQuestion = FormattedContent * FormattedContent list
-type ParsedSection = FormattedContent * ParsedQuestion list
+type ParsedFeedback = FormattedContent
+
+type ParsedQuestion =
+    | ParsedFeedbacks of ParsedFeedback list
+
+type ParsedSection =
+    | ParsedQuestions of ParsedQuestion list
 
 type ParsedFile =
-    | ParsedSection of ParsedSection list
-    | ParsedEmpty
+    | ParsedSections of ParsedSection list
 
 
 // Parse functions:
 // Parse a formatted file record list into a parsed syntax tree
-let parseQuestion = ()
 
-let parseSection = function
-    | FormattedSection section -> ()
-    | _ -> ()
+let rec parseFeedback = function
+    | FormattedFeedback f :: rest -> f :: parseFeedback rest
+    | lst -> lst
 
-let rec parseFile (file: FormattedFile) =
+// read a question
+let rec parseQuestion = function
+    | FormattedQuestion q :: rest -> []
+    | FormattedFeedback f :: rest -> []//parseQuestion (parseFeedback (f :: rest))
+    | _ -> []
+
+// read a section
+let rec parseSection = function
+    | FormattedSection s :: rest -> []
+    | _ -> []
+
+// read an entire file
+let rec parseFile (file: FormattedContent list) =
     match file with
     | [] -> []
-    | (FormattedSection section) :: rest -> (parseSection section) :: parseFile rest
-    | _ -> raise (MyParseException "Parse error: file was malformed")
+    | FormattedSection s :: rest -> []
+    | FormattedEmpty :: rest -> []
+    | _ -> failwith "\n--- ERROR ---\n\n"
+
 
