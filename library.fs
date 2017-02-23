@@ -182,7 +182,6 @@ and parseSection file last =
     | _ -> []
 
 
-
 // Wrapper function for parsing a formatted file
 let parseFile file = parseFile' file FormattedEmpty
 
