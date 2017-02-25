@@ -24,13 +24,28 @@ type MyException =
     | MyFormatException of string
     | MyParseException of string
 
-let errorHandler (err: MyException) =
-    let mutable str = ""
+let errorHandler (err: MyException, linenumber: int) =
+    Console.ForegroundColor <- ConsoleColor.Red
     match err with
-        | MyIOException s     -> printfn "IO error: %s" s
-        | MyFormatException s -> printfn "Format error: %s" s
-        | MyParseException s  -> printfn "Parse error: %s" s
+        | MyIOException s     ->
+            printfn "IO error: %s" s
+        | MyFormatException s ->
+            printfn "Format error (line %i): %s" linenumber s
+        | MyParseException s  ->
+            printfn "Parse error (line %i): %s" linenumber s
+    Console.ResetColor()
     Environment.Exit 1
+
+let warningHandler (err: MyException, linenumber: int) =
+    Console.ForegroundColor <- ConsoleColor.Cyan
+    match err with
+        | MyIOException s     ->
+            printfn "IO error: %s" s
+        | MyFormatException s ->
+            printfn "Format error (line %i): %s" linenumber s
+        | MyParseException s  ->
+            printfn "Parse error (line %i): %s" linenumber s
+    Console.ResetColor()
 
 
 // Extended pattern:
@@ -45,11 +60,11 @@ let (|StartsWith|_|) (s: string) (p: string) =
 let openFile (path: string) =
     if not <| IO.File.Exists path then
         let str = "The file does not exist"
-        errorHandler (MyIOException(str))
+        errorHandler (MyIOException(str), 0)
         null
     else if IO.Path.GetExtension (path) <> ".mrk" then
         let str = "The file must have the .mrk extension"
-        errorHandler (MyIOException(str))
+        errorHandler (MyIOException(str), 0)
         null
     else
         new System.IO.StreamReader(path)
@@ -62,9 +77,9 @@ let readLine(f: IO.StreamReader) =
 
 // Formatted types:
 // Store each line from the file in a formatted buffer of records
-type ContentQuestion = {contents: string}
-type ContentFeedback = {mark: string; feedback: string}
-type ContentSection = {depth: int; title: string; points: int}
+type ContentQuestion = {contents: string; position: Position}
+type ContentFeedback = {mark: string; feedback: string; position: Position}
+type ContentSection = {depth: int; title: string; points: int; position: Position}
 
 type FormattedContent =
     | FormattedSection  of ContentSection
@@ -83,106 +98,143 @@ type FormatLineType =
     | Empty
 
 
-
 // Formatting functions
 // Format a file into a structured list of line type records
-let formatHandleError (str: string) =
-    errorHandler (MyFormatException str)
+let formatHandleError (str: string, linenumber: int) =
+    errorHandler (MyFormatException str, linenumber)
     FormattedEmpty
 
-let rec formatFeedback (line: string) =
+let rec formatFeedback (line: string) (linenumber: int) =
     let pattern = "^[\s]*([\+\?-])[ ]+([\w\W\d\s]+)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
         match res.[1] with
-        | "+" -> FormattedFeedback ({mark = mark_feedback_good;
-                                     feedback = res.[2]})
-        | "-" -> FormattedFeedback ({mark = mark_feedback_bad;
-                                     feedback = res.[2]})
-        | "?" -> FormattedFeedback ({mark = mark_feedback_unsure;
-                                     feedback = res.[2]})
-        | _   -> "Internal error: Unexpected symbol in format feedback"
-                 |> formatHandleError
+        | "+" -> FormattedFeedback ({mark = mark_feedback_good
+                                     feedback = res.[2]
+                                     position = linenumber})
+        | "-" -> FormattedFeedback ({mark = mark_feedback_bad
+                                     feedback = res.[2]
+                                     position = linenumber})
+        | "?" -> FormattedFeedback ({mark = mark_feedback_unsure
+                                     feedback = res.[2]
+                                     position = linenumber})
+        | _   -> ("Internal error: Unexpected symbol in format feedback",
+                  linenumber) |> formatHandleError
     else
-        "Section feedback is malformed" |> formatHandleError
+        ("Section feedback is malformed", linenumber) |> formatHandleError
 
-let rec formatQuestion (line: string) =
+let rec formatQuestion (line: string) (linenumber: int) =
     let pattern = "^[\s]*[\*][ ]+([\w\W\d\s]+)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
-        FormattedQuestion({contents = res.[1]})
+        FormattedQuestion({contents = res.[1]; position = linenumber})
     else
-        "Section question is malformed" |> formatHandleError
+        ("Section question is malformed", linenumber) |> formatHandleError
 
-let formatSection (line: string) =
+let formatSection (line: string) (linenumber: int) =
     let pattern = "^([#]+)[ ]+([\w\d ]+): /([\d]+[\d]*)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
-        FormattedSection({depth = int (res.[1].Length); title = res.[2]; points = int (res.[3])})
+        FormattedSection({depth = int (res.[1].Length); title = res.[2]
+                          points = int (res.[3]); position = linenumber})
     else
-        "Section header is malformed" |> formatHandleError
+        ("Section header is malformed", linenumber) |> formatHandleError
 
-let rec formatGetType = function
+let rec formatGetType (linenumber: int) = function
     | ""                  -> FormatLineType.Empty
-    | StartsWith " " rest -> formatGetType rest
+    | StartsWith " " rest -> formatGetType linenumber rest
     | StartsWith "#" rest -> FormatLineType.Section
     | StartsWith "+" rest -> FormatLineType.Feedback
     | StartsWith "-" rest -> FormatLineType.Feedback
     | StartsWith "?" rest -> FormatLineType.Feedback
     | StartsWith "*" rest -> FormatLineType.Question
-    | _ -> "Invalid line" |> formatHandleError |> ignore; FormatLineType.Empty
+    | _ ->
+        ("Invalid line", linenumber) |> formatHandleError |> ignore
+        FormatLineType.Empty
 
 let formatFile (path: string) =
     let file = openFile(path)
-    let rec inner() =
+    let rec inner(linenumber: int) =
         match readLine(file) with
         | Some s ->
-            match formatGetType s with
-            | FormatLineType.Empty    -> FormattedContent.FormattedEmpty :: inner()
-            | FormatLineType.Section  -> formatSection s :: inner()
-            | FormatLineType.Question -> formatQuestion s :: inner()
-            | FormatLineType.Feedback -> formatFeedback s :: inner()
+            match formatGetType linenumber s with
+            | FormatLineType.Empty    ->
+                FormattedContent.FormattedEmpty :: inner(linenumber + 1)
+            | FormatLineType.Section  ->
+                formatSection s linenumber :: inner(linenumber + 1)
+            | FormatLineType.Question ->
+                formatQuestion s linenumber :: inner(linenumber + 1)
+            | FormatLineType.Feedback ->
+                formatFeedback s linenumber :: inner(linenumber + 1)
         | None -> []
-    inner()
+    inner(1)
 
 
 // Parse types:
 // Build a recursive tree type from a formatted records buffer
 type ParsedQuestion =
-    | Question of ContentQuestion * ContentFeedback list
+    | PQuestion of ContentQuestion * ContentFeedback list
 
 type ParsedSection =
-    | Section of ParsedQuestion list
+    | PSection of ContentSection * ParsedQuestion list
 
+// allows it to be optional to place a header
 type ParsedFile =
-    | File of ParsedSection list
+    | PFileHeader of ContentSection * ParsedSection list
+    | PFileNoHeader of ParsedSection list
 
 
 // Parse functions:
 // Functions to parse a formatted file into a parsed file
-let rec parseFile' (file: FormattedContent list)
-                   (last: FormattedContent) =
+let rec parseFile' (file: FormattedContent list) =
     match file with
     | [] -> []
-    | FormattedSection s :: xs  ->
-        let sect = parseSection xs (FormattedSection s)
-        Section(sect) :: parseFile' xs (FormattedSection s)
-    | FormattedQuestion q :: xs -> []
-    | FormattedFeedback f :: xs -> []
-    | FormattedError e :: xs    -> errorHandler e; []
-    | FormattedEmpty :: xs      -> []
+    | (FormattedSection s as x) :: xs ->
+        PSection(s, parseSection xs) :: parseFile' xs
 
-and parseSection file last =
+    | _ as x :: xs -> parseFile' xs
+
+and parseSection (file: FormattedContent list) =
     match file with
-    | FormattedSection s :: xs -> []
-    | FormattedFeedback f :: xs ->
-        let str = "Feedback given without a question"
-        errorHandler (MyParseException(str))
-        []
-    | _ -> []
+    | [] -> []
+    | (FormattedSection s as x) :: xs -> []
+    | (FormattedQuestion q as x) :: xs -> []
+
+    | _ as x :: xs -> parseSection xs
 
 
-// Wrapper function for parsing a formatted file
-let parseFile file = parseFile' file FormattedEmpty
+// find and return the file header, if such one exists
+// if the first item is not a header as FormattedError type will
+// be returned as the 'header'. (the caller should check this!)
+let rec containsHeader = function
+    | ([], _, _) -> Some(FormattedEmpty :: [])
+    | (FormattedEmpty :: xs, true, o) -> containsHeader (xs, true, o)
+    | (FormattedEmpty :: xs, false, o) -> containsHeader (xs, false, o)
+    | (FormattedSection s as x :: xs, true, o) -> o
+    | (FormattedSection s as x :: xs, false, o) ->
+        containsHeader (xs, true, Some(x :: xs))
+    | (_ as x :: xs, false, o) ->
+        let str = "The file should start with a section"
+        Some(FormattedError(MyIOException(str)) :: [])
+    | (_ as x :: xs, true, o) -> containsHeader (xs, true, o)
 
+// wrapper function for parsing a file
+let parseFile (file: FormattedContent list) =
+    let header = containsHeader (file, false, None)
+    match header with
+    | Some(lst) ->
+        match lst with
+        | (FormattedSection x) :: xs -> PFileHeader(x, parseFile' xs)
+        | (FormattedEmpty) :: xs ->
+            let str = "The file was empty"
+            errorHandler (MyIOException(str), 0)
+            PFileNoHeader([])
+        | (FormattedError e) :: xs ->
+            errorHandler(e, 0)
+            PFileNoHeader([])
+        | _ ->
+            let str = "Some error occured"
+            errorHandler (MyIOException(str), 0)
+            PFileNoHeader([])
+    | None          -> PFileNoHeader(parseFile' file)
 
