@@ -40,11 +40,11 @@ let warningHandler (err: MyException, linenumber: int) =
     Console.ForegroundColor <- ConsoleColor.Cyan
     match err with
         | MyIOException s     ->
-            printfn "IO error: %s" s
+            printfn "IO warning: %s" s
         | MyFormatException s ->
-            printfn "Format error (line %i): %s" linenumber s
+            printfn "Format warning (line %i): %s" linenumber s
         | MyParseException s  ->
-            printfn "Parse error (line %i): %s" linenumber s
+            printfn "Parse warning (line %i): %s" linenumber s
     Console.ResetColor()
 
 
@@ -77,9 +77,16 @@ let readLine(f: IO.StreamReader) =
 
 // Formatted types:
 // Store each line from the file in a formatted buffer of records
-type ContentQuestion = {contents: string; position: Position}
-type ContentFeedback = {mark: string; feedback: string; position: Position}
-type ContentSection = {depth: int; title: string; points: int; position: Position}
+type ContentQuestion = {contents: string
+                        position: Position}
+type ContentFeedback = {mark: string
+                        feedback: string
+                        position: Position}
+type ContentSection = {depth: int
+                       title: string
+                       points_given: int
+                       points_total: int
+                       position: Position}
 
 type FormattedContent =
     | FormattedSection  of ContentSection
@@ -132,11 +139,14 @@ let rec formatQuestion (line: string) (linenumber: int) =
         ("Section question is malformed", linenumber) |> formatHandleError
 
 let formatSection (line: string) (linenumber: int) =
-    let pattern = "^([#]+)[ ]+([\w\d ]+): /([\d]+[\d]*)$"
+    let pattern = "^([#]+)[ ]+([\w\d ]+): ([\d]*)/([1-9]+[\d]*)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
-        FormattedSection({depth = int (res.[1].Length); title = res.[2]
-                          points = int (res.[3]); position = linenumber})
+        FormattedSection({depth = int (res.[1].Length)
+                          title = res.[2]
+                          points_given = try int (res.[3]) with | _ -> 0
+                          points_total = int (res.[4])
+                          position = linenumber})
     else
         ("Section header is malformed", linenumber) |> formatHandleError
 
@@ -190,17 +200,39 @@ let rec parseFile' (file: FormattedContent list) =
     match file with
     | [] -> []
     | (FormattedSection s as x) :: xs ->
-        PSection(s, parseSection xs) :: parseFile' xs
+        PSection(s, parseSection xs Empty) :: parseFile' xs
 
     | _ as x :: xs -> parseFile' xs
 
-and parseSection (file: FormattedContent list) =
+and parseSection (file: FormattedContent list)
+                 (last: FormatLineType) =
+    match file with
+    | [] -> []
+    | (FormattedSection s as x) :: xs ->
+        if last = Section then
+            let str = "Section is empty"
+            warningHandler(MyParseException(str), s.position)
+            []
+        else []
+    | (FormattedQuestion q as x) :: xs ->
+        PQuestion(q, parseQuestion xs) :: parseSection xs Question
+    | (FormattedFeedback f as x) :: xs ->
+        if last = Section then
+            let str = "Feedback given without a question, " +
+                      "default question will be added"
+            warningHandler(MyParseException(str), f.position)
+            let question = {contents = "Comments:"; position = f.position}
+            PQuestion(question, parseQuestion xs) :: parseSection xs Question
+        else parseSection xs last
+    | _ as x :: xs -> parseSection xs last
+
+and parseQuestion (file: FormattedContent list) =
     match file with
     | [] -> []
     | (FormattedSection s as x) :: xs -> []
     | (FormattedQuestion q as x) :: xs -> []
-
-    | _ as x :: xs -> parseSection xs
+    | (FormattedFeedback f as x) :: xs -> f :: parseQuestion xs
+    | _ as x :: xs -> parseQuestion xs
 
 
 // find and return the file header, if such one exists
