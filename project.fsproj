@@ -54,6 +54,7 @@
   <ItemGroup>
     <Compile Include="main.fsx" />
     <Compile Include="library.fs" />
+    <Compile Include="genHtml.fs" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '11.0'">

@@ -270,3 +270,9 @@ let parseFile (file: FormattedContent list) =
             PFileNoHeader([])
     | None          -> PFileNoHeader(parseFile' file)
 
+
+
+// HTML-Parsing:
+// Convert a parsed file into an html-document
+
+

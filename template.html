@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<style>
+		#section1 {
+			display: none;
+		}
+		#question1-1 {
+			display: none;
+		}
+		#question1-2 {
+			display: none;
+		}
+		.button {
+    		background-color: #008CBA; /* Green */
+    		border: none;
+    		color: white;
+    		padding: 16px 32px;
+    		text-align: center;
+    		text-decoration: none;
+    		display: inline-block;
+    		font-size: 16px;
+    		margin: 4px 2px;
+   			-webkit-transition-duration: 0.3s; /* Safari */
+    		transition-duration: 0.3s;
+    		cursor: pointer;
+		}
+		.button:hover {
+			-webkit-filter: opacity(55%);
+		}
+		.bt-section {
+
+		}
+		.bt-question {
+
+		}
+	</style>
+</head>
+<body>
+<h1>Title</h1><hr>
+<button class="button bt-section" onclick="expandSection('section1')">Section 1</button>
+<div id="section1">
+	<button class="button bt-question" onclick="expandSection('question1-1')">Question 1</button>
+	<div id="question1-1">This is question 1</div>
+	<button class="button bt-question" onclick="expandSection('question1-2')">Question 2</button>
+	<div id="question1-2">This is question 2</div>
+</div>
+<hr>
+<h5>Points in total: 55/100</h5>
+</body>
+<script>
+function expandSection(str){
+	var s = document.getElementById(str);
+	if (s.style.display === 'block') {
+		s.style.display = 'none';
+	} else {
+		s.style.display = 'block';
+	}
+}
+</script>
+</html>
