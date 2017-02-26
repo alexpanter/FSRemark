@@ -13,38 +13,76 @@
 			display: none;
 		}
 		.button {
-    		background-color: #008CBA; /* Green */
     		border: none;
     		color: white;
-    		padding: 16px 32px;
     		text-align: center;
     		text-decoration: none;
-    		display: inline-block;
-    		font-size: 16px;
+    		display: block;
     		margin: 4px 2px;
    			-webkit-transition-duration: 0.3s; /* Safari */
     		transition-duration: 0.3s;
     		cursor: pointer;
 		}
 		.button:hover {
-			-webkit-filter: opacity(55%);
+			-webkit-filter: opacity(65%);
 		}
 		.bt-section {
-
+			background-color: #008CBA;
+			padding: 16px 32px;
+			font-size: 16px;
 		}
 		.bt-question {
-
+			background-color: #00BAB7;
+			padding: 10px 20px;
+			font-size: 14px;
+		}
+		.mark-container {
+			display: block;
+			margin: 6px 5px;
+		}
+		.mark {
+			border: none;
+			border-radius: 20%;
+			width: 18px;
+			height: 21px;
+			margin-left: 8px;
+			margin-right: 4px;
+			font-size: 16px;
+			font-weight: bold;
+			text-align: center;
+			line-height: 18px;
+			color: #000000;
+		}
+		.mark-good {
+			background-color: #06D60A;
+		}
+		.mark-bad {
+			background-color: #FF3333;
+		}
+		.mark-unsure {
+			background-color: #FFA136;
 		}
 	</style>
 </head>
 <body>
-<h1>Title</h1><hr>
-<button class="button bt-section" onclick="expandSection('section1')">Section 1</button>
+<h1>Software Developmen 2017 - Exercise 2</h1><hr>
+<button class="button bt-section" onclick="expandSection('section1')">GitLab</button>
 <div id="section1">
-	<button class="button bt-question" onclick="expandSection('question1-1')">Question 1</button>
-	<div id="question1-1">This is question 1</div>
-	<button class="button bt-question" onclick="expandSection('question1-2')">Question 2</button>
-	<div id="question1-2">This is question 2</div>
+
+	<button class="button bt-question" onclick="expandSection('question1-1')">Understands basic Git usage</button>
+	<div id="question1-1">
+		<div class="mark-container"><button class="mark mark-good">+</button>
+		Yes, good structuring of repo.</div>
+		<div class="mark-container"><button class="mark mark-good">+</button>
+		Good explanation in report.</div>
+	</div>
+
+	<button class="button bt-question" onclick="expandSection('question1-2')">Security</button>
+	<div id="question1-2">
+		<div class="mark-container"><button class="mark mark-good">+</button>Keys have been added to the repository</div>
+		<div class="mark-container"><button class="mark mark-bad">-</button>None of the commits are signed</div>
+		<div class="mark-container"><button class="mark mark-unsure">?</button>Missing section in report</div>
+	</div>
 </div>
 <hr>
 <h5>Points in total: 55/100</h5>

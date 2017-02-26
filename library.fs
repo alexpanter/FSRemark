@@ -74,6 +74,12 @@ let readLine(f: IO.StreamReader) =
         Some(f.ReadLine())
     else None
 
+let writeFile (path: string) =
+    if IO.File.Exists(path) then
+        printfn "overwriting file! Press key to continue "
+        Console.ReadLine() |> ignore
+    new IO.StreamWriter(path, false)
+
 
 // Formatted types:
 // Store each line from the file in a formatted buffer of records
@@ -139,7 +145,7 @@ let rec formatQuestion (line: string) (linenumber: int) =
         ("Section question is malformed", linenumber) |> formatHandleError
 
 let formatSection (line: string) (linenumber: int) =
-    let pattern = "^([#]+)[ ]+([\w\d ]+): ([\d]*)/([1-9]+[\d]*)$"
+    let pattern = "^([#]+)[ ]+([\w\d ,-]+): ([\d]*)/([1-9]+[\d]*)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
         FormattedSection({depth = int (res.[1].Length)
@@ -271,8 +277,43 @@ let parseFile (file: FormattedContent list) =
     | None          -> PFileNoHeader(parseFile' file)
 
 
+// HTML-generation
+// Functions to generate HTML content
+type wrType = string -> unit
+type pType = ParsedSection list
+
+let createStart (title: string) (wr: wrType) =
+    wr "!DOCTYPE html"
+    wr "<html>"
+    wr "<head>"
+    wr <| "<title>" + title + "</title>"
+
+let rec createSectionIds (parser: pType) (wr: wrType) =
+    match parser with
+    | [] -> ()
+    | PSection(s, xs) :: rest -> ()
+
+
+and createQuestionIds (parser: pType) (wr: wrType) =
+    match parser with
+    | PQuestion(q, xs) :: rest -> ()
+
 
 // HTML-Parsing:
 // Convert a parsed file into an html-document
+let createHtmlHeader (header: ContentSection, parser: pType) =
+    let title = header.title
+    let file = writeFile(title)
+    let writeLine = fun s -> file.WriteLine("@" + s)
+    createStart title writeLine
 
 
+let createHtmlNoHeader (parser: pType) =
+    printf "Enter a name for the output HTML-file: "
+    let title = Console.ReadLine()
+    ()
+
+let createHtml (parser: ParsedFile) =
+    match parser with
+    | PFileHeader(sect, lst) -> createHtmlHeader (sect, lst)
+    | PFileNoHeader(lst) -> createHtmlNoHeader (lst)
