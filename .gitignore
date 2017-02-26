@@ -1,4 +1,11 @@
 # ignore assemblies
 .exe
 .dll
+
+# ignore file about design ideas and thoughts
 tanker
+
+# ignore compiler debugging directories
+bin/
+obj/
+
