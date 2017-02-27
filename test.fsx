@@ -5,10 +5,10 @@
 [<EntryPoint>]
 let main (args: string[]) =
     if args.Length = 1 then
-        //printfn "%A" <| Library.formatFile args.[0]
-        Library.formatFile args.[0]
+        args.[0]
+        |> Library.formatFile
         |> Library.parseFile
-        |> printfn "%A"
+        |> Library.htmlParser
         0
     else
         printfn "Please provide a file name for reference"

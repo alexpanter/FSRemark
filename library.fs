@@ -20,9 +20,10 @@ type Position = int
 // Error handling:
 // Print custom error message, then terminate program
 type MyException =
-    | MyIOException of string
+    | MyIOException     of string
     | MyFormatException of string
-    | MyParseException of string
+    | MyParseException  of string
+    | MyHTMLException   of string
 
 let errorHandler (err: MyException, linenumber: int) =
     Console.ForegroundColor <- ConsoleColor.Red
@@ -33,6 +34,8 @@ let errorHandler (err: MyException, linenumber: int) =
             printfn "Format error (line %i): %s" linenumber s
         | MyParseException s  ->
             printfn "Parse error (line %i): %s" linenumber s
+        | MyHTMLException s ->
+            printfn "Error parsing HTML: %s" s
     Console.ResetColor()
     Environment.Exit 1
 
@@ -45,6 +48,8 @@ let warningHandler (err: MyException, linenumber: int) =
             printfn "Format warning (line %i): %s" linenumber s
         | MyParseException s  ->
             printfn "Parse warning (line %i): %s" linenumber s
+        | MyHTMLException s ->
+            printfn "HTML Warning: %s" s
     Console.ResetColor()
 
 
@@ -57,13 +62,13 @@ let (|StartsWith|_|) (s: string) (p: string) =
 
 // IO functions:
 // Convenient wrappers for file-IO
-let openFile (path: string) =
+let openFile (path: string) (extension: string) =
     if not <| IO.File.Exists path then
         let str = "The file does not exist"
         errorHandler (MyIOException(str), 0)
         null
-    else if IO.Path.GetExtension (path) <> ".mrk" then
-        let str = "The file must have the .mrk extension"
+    else if IO.Path.GetExtension (path) <> extension then
+        let str = "The file must have the "+extension+" extension"
         errorHandler (MyIOException(str), 0)
         null
     else
@@ -174,7 +179,7 @@ let rec formatGetType (linenumber: int) = function
         FormatLineType.Empty
 
 let formatFile (path: string) =
-    let file = openFile(path)
+    let file = openFile path ".mrk"
     let rec inner(linenumber: int) =
         match readLine(file) with
         | Some s ->
@@ -287,42 +292,118 @@ let parseFile (file: FormattedContent list) =
 type wrType = string -> unit  // append a line (string) to the output file
 type pType = ParsedSection list
 
-let createStart (title: string) (wr: wrType) =
-    wr "!DOCTYPE html"
+let createHeader (title: string) (wr: wrType) =
+    wr "<!DOCTYPE html>"
     wr "<html>"
     wr "<head>"
     wr <| "<title>" + title + "</title>"
 
-let rec createSectionIds (parser: pType) (wr: wrType) =
-    match parser with
-    | [] -> ()
-    | PSection(s, xs) :: rest -> ()
+let createFooter (wr: wrType) =
+    wr "</html>"
 
+let createStyle (wr: wrType) =
+    wr "<style>"
+    use style = openFile (IO.Path.Combine("html","style.css")) ".css"
+    while not <| style.EndOfStream do
+        wr <| style.ReadLine()
+    wr "</style>"
 
-and createQuestionIds (parser) (wr: wrType) =
-    match parser with
-    | [] -> ()
-    | PQuestion(q, xs) :: rest -> ()
+let createScript (wr: wrType) =
+    wr "<script>"
+    use script = openFile (IO.Path.Combine("html","script.js")) ".js"
+    while not <| script.EndOfStream do
+        wr <| script.ReadLine()
+    wr "</script>"
+
+let rec createBody (parser: pType) (wr: wrType) =
+    let rec appendSection = function
+        | [] -> ()
+        | PSection(s, ql) :: xs ->
+            wr "<div show=\"0\">"
+            wr "<button class=\"button bt-section\" onclick=\"expandSection(this)\">"
+            wr s.title
+            wr "</button><div>"
+            appendQuestion ql
+            wr "</div></div>"
+            appendSection xs
+
+    and appendQuestion = function
+        | [] -> ()
+        | PQuestion(q, fl) :: xs ->
+            wr "<div show=\"0\">"
+            wr "<button class=\"button bt-question\" onclick=\"expandQuestion(this)\">"
+            wr q.contents
+            wr "</button><div>"
+            appendFeedback fl
+            wr "</div></div>"
+            appendQuestion xs
+
+    and appendFeedback = function
+        | [] -> ()
+        | x :: xs ->
+            wr "<div class=\"mark-container\"><button class=\"mark "
+            match x.mark with
+                | "+" -> wr "mark-good\">"
+                | "-" -> wr "mark-bad\">"
+                | "?" -> wr "mark-unsure\">"
+                | _ -> errorHandler(MyHTMLException("Invalid feedback mark!"), 0)
+            wr x.mark
+            wr "</button>"
+            wr x.feedback
+            wr "</div>"
+            appendFeedback xs
+
+    appendSection parser
 
 
 // HTML-Parsing:
-// Convert a parsed file into an html-document
-let createHtmlDocument (parser: pType) (title: string) =
-    let file = writeFile(title)
-    let writeLine = ( + ) "@" >> file.WriteLine
-    createStart title writeLine
+// Convert a parsed file structure into an html-document,
+// and stream it into a file.
+let htmlParser (parser: ParsedFile) =
+    let mutable title = ""
+    let mutable fname = ""
+    let mutable header = Unchecked.defaultof<ContentSection>
+    let mutable parseList = Unchecked.defaultof<ParsedSection list>
 
-
-let createHtmlHeader (header: ContentSection, parser: pType) =
-    let title = header.title
-    createHtmlDocument parser title
-
-let createHtmlNoHeader (parser: pType) =
-    printf "Enter a name for the output HTML-file: "
-    let title = Console.ReadLine()
-    createHtmlDocument parser title
-
-let createHtml (parser: ParsedFile) =
     match parser with
-    | PFileHeader(sect, lst) -> createHtmlHeader (sect, lst)
-    | PFileNoHeader(lst) -> createHtmlNoHeader (lst)
+    | PFileHeader(sect, lst) ->
+        printf "Enter a name for the output HTML-file (without '.html'): "
+        fname <- (Console.ReadLine() + ".html").Replace(" ", "")
+        title <- sect.title
+        header <- sect
+        parseList <- lst
+    | PFileNoHeader(lst) ->
+        printf "Enter a name for the assignment: "
+        fname <- Console.ReadLine()
+        printf "Enter a name for the output HTML-file: "
+        title <- Console.ReadLine()
+        header <- {depth = -1; title = title; points_given = -1
+                   points_total = -1; position = -1}
+        parseList <- lst
+
+    // file stream
+    let file = writeFile(fname)
+    let wr = fun (s: string) -> file.WriteLine s
+
+    // header
+    createHeader fname wr
+    createStyle wr
+    wr "</head>"
+
+    // body
+    wr "<body>"
+    wr <| "<h1>" + title + "</h1><hr>"
+    createBody parseList wr
+    wr "<hr><h5>Points in total: X/Y</h5>"
+    wr "</body>"
+    file.Close()
+
+    // script and footer
+    let file1 = new IO.StreamWriter (fname, true)
+    let wr1 = fun (s: string) -> file1.WriteLine s
+    createScript wr1
+    wr1 "</html>"
+
+    // end of parse.
+    file1.Close()
+
