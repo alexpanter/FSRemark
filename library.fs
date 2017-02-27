@@ -78,7 +78,12 @@ let writeFile (path: string) =
     if IO.File.Exists(path) then
         printfn "overwriting file! Press key to continue "
         Console.ReadLine() |> ignore
-    new IO.StreamWriter(path, false)
+        IO.File.Delete(path)
+    new IO.StreamWriter(path, true)
+
+let appendFile (source: IO.StreamReader) (destination: IO.StreamWriter) =
+    while not <| source.EndOfStream do
+        source.ReadLine() |> destination.WriteLine
 
 
 // Formatted types:
@@ -279,7 +284,7 @@ let parseFile (file: FormattedContent list) =
 
 // HTML-generation
 // Functions to generate HTML content
-type wrType = string -> unit
+type wrType = string -> unit  // append a line (string) to the output file
 type pType = ParsedSection list
 
 let createStart (title: string) (wr: wrType) =
@@ -294,24 +299,28 @@ let rec createSectionIds (parser: pType) (wr: wrType) =
     | PSection(s, xs) :: rest -> ()
 
 
-and createQuestionIds (parser: pType) (wr: wrType) =
+and createQuestionIds (parser) (wr: wrType) =
     match parser with
+    | [] -> ()
     | PQuestion(q, xs) :: rest -> ()
 
 
 // HTML-Parsing:
 // Convert a parsed file into an html-document
-let createHtmlHeader (header: ContentSection, parser: pType) =
-    let title = header.title
+let createHtmlDocument (parser: pType) (title: string) =
     let file = writeFile(title)
-    let writeLine = fun s -> file.WriteLine("@" + s)
+    let writeLine = ( + ) "@" >> file.WriteLine
     createStart title writeLine
 
+
+let createHtmlHeader (header: ContentSection, parser: pType) =
+    let title = header.title
+    createHtmlDocument parser title
 
 let createHtmlNoHeader (parser: pType) =
     printf "Enter a name for the output HTML-file: "
     let title = Console.ReadLine()
-    ()
+    createHtmlDocument parser title
 
 let createHtml (parser: ParsedFile) =
     match parser with

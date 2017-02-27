@@ -3,15 +3,6 @@
 <head>
 	<title></title>
 	<style>
-		#section1 {
-			display: none;
-		}
-		#question1-1 {
-			display: none;
-		}
-		#question1-2 {
-			display: none;
-		}
 		.button {
     		border: none;
     		color: white;
@@ -35,9 +26,10 @@
 			background-color: #00BAB7;
 			padding: 10px 20px;
 			font-size: 14px;
+			display: none;
 		}
 		.mark-container {
-			display: block;
+			display: none;
 			margin: 6px 5px;
 		}
 		.mark {
@@ -66,35 +58,61 @@
 </head>
 <body>
 <h1>Software Developmen 2017 - Exercise 2</h1><hr>
-<button class="button bt-section" onclick="expandSection('section1')">GitLab</button>
-<div id="section1">
 
-	<button class="button bt-question" onclick="expandSection('question1-1')">Understands basic Git usage</button>
-	<div id="question1-1">
+<div show="0">
+	<button class="button bt-section" onclick="expandSection(this)">GitLab</button>
+	<div>
+
+	<div show="0">
+	<button class="button bt-question" onclick="expandQuestion(this)">Understands basic Git usage</button>
+	<div>
 		<div class="mark-container"><button class="mark mark-good">+</button>
 		Yes, good structuring of repo.</div>
 		<div class="mark-container"><button class="mark mark-good">+</button>
 		Good explanation in report.</div>
-	</div>
+	</div></div>
 
-	<button class="button bt-question" onclick="expandSection('question1-2')">Security</button>
-	<div id="question1-2">
-		<div class="mark-container"><button class="mark mark-good">+</button>Keys have been added to the repository</div>
-		<div class="mark-container"><button class="mark mark-bad">-</button>None of the commits are signed</div>
-		<div class="mark-container"><button class="mark mark-unsure">?</button>Missing section in report</div>
+	<div show="0">
+	<button class="button bt-question" onclick="expandQuestion(this)">Security</button>
+	<div>
+		<div class="mark-container"><button class="mark mark-good">+</button>
+		Keys have been added to the repository</div>
+		<div class="mark-container"><button class="mark mark-bad">-</button>
+		None of the commits are signed</div>
+		<div class="mark-container"><button class="mark mark-unsure">?</button>
+		Missing section in report</div>
+	</div></div>
 	</div>
 </div>
+
 <hr>
 <h5>Points in total: 55/100</h5>
 </body>
 <script>
-function expandSection(str){
-	var s = document.getElementById(str);
-	if (s.style.display === 'block') {
-		s.style.display = 'none';
+function expand(par, arr){
+	var len = arr.length;
+	if (par.getAttribute("show") === "0") {
+		console.log("inside");
+		for (var i = 0; i < len; i++) {
+			arr[i].style.display = 'block';
+		}
+		par.setAttribute("show", "1");
 	} else {
-		s.style.display = 'block';
+		for (var i = 0; i < len; i++) {
+			arr[i].style.display = 'none';
+		}
+		par.setAttribute("show", "0");
 	}
+}
+function expandSection(obj){
+	var par = obj.parentElement;
+	var arr = par.getElementsByClassName("bt-question");
+	expand(par, arr);	
+}
+function expandQuestion(obj){
+	var par = obj.parentElement;
+	var arr = par.getElementsByClassName("mark-container");
+	expand(par, arr);
 }
 </script>
 </html>

@@ -1,21 +1,16 @@
 module FSRemarks.GenHtml
 open System
 
+
+
+let createStyle (file: IO.StreamWriter) (parser: Types.ParsedSection list) =
+
 let createHeader(title: string) =
-    let str = new System.Text.StringBuilder()
-    [
-    str.AppendLine("<head>")
-    str.AppendLine(String.Format("<title>{0}</title>", title))
-    str.AppendLine("")
-    str.AppendLine("<style>")
-    str.AppendLine("</style>")
-    str.AppendLine("</head>")
-    ] |> ignore
-    str.ToString()
+    ()
 
 printfn "%s" <| createHeader("example.html")
 
-let createExpandScript() =
+let createExpandScript(file: IO.StreamWriter) =
     let str = new System.Text.StringBuilder()
     [
     str.AppendLine("<script>")

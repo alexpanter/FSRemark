@@ -1,0 +1,13 @@
+# Optimization for javascript.
+# Perhaps remove the need for creating a bunch of Id's.
+# This will also be a valuable parser optimization!
+
+https://developer.mozilla.org/en-US/docs/Web/API/Document
+
+#
+# More precisely:
+
+https://developer.mozilla.org/en-US/docs/Web/API/Document/getElementsByClassName
+
+var elements = document.getElementByClassName(names)
+var red_tests = document.getElementsByClassName('red test');
