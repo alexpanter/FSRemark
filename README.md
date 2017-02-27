@@ -8,9 +8,19 @@ A humble attempt at recreating the Remarks application:
 This project aims to ease the parsing of remark files by utilizing the built-in
 string functionalities provided by F# and the .NET platform.
 
-All syntax errors in a `remarks` file are reported with an exact line number
-and a short description of the error. This is motivated by the need for
-more user-friendly feedback in the original application.
+In contrary to the original `remarks` application, `FSharpRemarks` is designed
+to be a simple console tool which, given a remarks (.mrk) file as input
+produces an html document, no questions asked.
+
+__To attain these goals__ :
+* All syntax errors in a `remarks` file are reported with an exact line number
+  and a short description of the error.
+* The application will automatically calculate the student's points in total,
+  and add them to the html file.
+* If the maximum number of points for each task do not add up to the provided
+  total, an error will be printed with the difference.
+* In contrast to the original design, the header line is now optional.
+
 
 ### Technicalities:
 The application works by first generating a list of lexer tokens from the file,
@@ -19,9 +29,8 @@ ie. a list of struct unions (in proper `F#` lingo).
 This list is then run through a parser which builds a syntax tree for the file
 using list-recursion.
 
-__Not yet implemented :__
-
-Another parser that transforms the syntax tree into a styled `html`-document will come soon.
+Finally, the created syntax tree is parsed into a html, and streamed to a target file,
+together with some css and javascript.
 
 ### Credits:
 _This project is by no account officially related to Remarks_.
