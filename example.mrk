@@ -1,6 +1,6 @@
-# Software Development 2017 - Exercise 2: /100
+# Software Development 2017 - Exercise 2: /95
 
-## GitLab: 10/25
+## GitLab: 5/20
   * Understands basic Git usage
     + Yes, good structuring of repo.
     + Good explanation in report.
@@ -9,21 +9,27 @@
     ? Missing section in report
     - None of the commits are signed
 
-## Task 2: 17/25
-  * Subtask 1
+## Git Cheat Sheet: 0/25
+  * Understands basic git usage
     - Not so good.
-  * Subtask 2
-    + Very good.
+    - many questions remain unanswered
+  * Layout of pdf
+    - some of the answers cannot be read because they overstep the boundaries of the page
 
-## Task 3: 23/25
-  * Subtask 1
-    - Misunderstood the task
-  * Subtask 2
-    - Cannot compile!
+## Enumerate: 0/25
+  * Understands generics
+    + yes, looks good
+  * PairwiseDistinct works properly
+    - not optimal: many comparisons are done twice!
+  * Testing
+    + All test cases has been conducted
+    + Testing is done on multiple data types - good!
+  * Code formatting
+    + Looks good
 
-## Task 4: 2/25
-  * Subtask 1
-    - missing
-  * Subtask 2
-    + Yes.
+## Report: 2/25
+  * Answers quesions about .gitignore
+    + yes, correct
+  * Follows our template
+    + Yes, or something of similar quality
 

@@ -79,10 +79,14 @@ let readLine(f: IO.StreamReader) =
         Some(f.ReadLine())
     else None
 
-let writeFile (path: string) =
+let rec writeFile (path: string) =
     if IO.File.Exists(path) then
-        printfn "overwriting file! Press key to continue "
-        Console.ReadLine() |> ignore
+        printf "File '%s' already exists. Overwrite? (Y/N) " path
+        match Console.ReadLine() with
+            | "y" | "Y" -> ()
+            | "n" | "N" | _ ->
+                let str = "No output file was produced!"
+                errorHandler(MyIOException(str), 0)
         IO.File.Delete(path)
     new IO.StreamWriter(path, true)
 
@@ -212,10 +216,17 @@ type ParsedFile =
 
 // Parse functions:
 // Functions to parse a formatted file into a parsed file
+let headerTotal = ref 0
+let total = ref 0
+let obtained = ref 0
+
 let rec parseFile' (file: FormattedContent list) =
     match file with
     | [] -> []
     | (FormattedSection s as x) :: xs ->
+        obtained := !obtained + s.points_given
+        total := !total + s.points_total
+
         PSection(s, parseSection xs Empty) :: parseFile' xs
 
     | _ as x :: xs -> parseFile' xs
@@ -240,7 +251,7 @@ and parseSection (file: FormattedContent list)
             let question = {contents = "Comments:"; position = f.position}
             PQuestion(question, parseQuestion xs) :: parseSection xs Question
         else parseSection xs last
-    | _ as x :: xs -> parseSection xs last
+    | (_ as x) :: xs -> parseSection xs last
 
 and parseQuestion (file: FormattedContent list) =
     match file with
@@ -272,7 +283,19 @@ let parseFile (file: FormattedContent list) =
     match header with
     | Some(lst) ->
         match lst with
-        | (FormattedSection x) :: xs -> PFileHeader(x, parseFile' xs)
+        | (FormattedSection x) :: xs ->
+            headerTotal := x.points_total
+            let pFile = PFileHeader(x, parseFile' xs)
+            if !obtained > !headerTotal then
+                let str = sprintf "Points don't add up: (%i/%i)"
+                              !obtained !headerTotal
+                errorHandler(MyParseException(str), 1)
+            if !total <> !headerTotal then
+                let str = "Total points calculated wrongly, " +
+                          "expected " + (string !headerTotal) +
+                          " but got " + (string !total)
+                errorHandler(MyParseException(str), 1)
+            pFile
         | (FormattedEmpty) :: xs ->
             let str = "The file was empty"
             errorHandler (MyIOException(str), 0)
@@ -284,7 +307,12 @@ let parseFile (file: FormattedContent list) =
             let str = "Some error occured"
             errorHandler (MyIOException(str), 0)
             PFileNoHeader([])
-    | None          -> PFileNoHeader(parseFile' file)
+    | None          ->
+        let pFile = PFileNoHeader(parseFile' file)
+        if !obtained > !total then
+            let str = sprintf "Points don't add up: (%i/%i)" !obtained !total
+            errorHandler(MyParseException(str), 1)
+        pFile
 
 
 // HTML-generation
@@ -394,13 +422,13 @@ let htmlParser (parser: ParsedFile) =
     wr "<body>"
     wr <| "<h1>" + title + "</h1><hr>"
     createBody parseList wr
-    wr "<hr><h5>Points in total: X/Y</h5>"
+    wr <| sprintf "<hr><h4>Points in total: %i/%i</h4>" !obtained !total
     wr "</body>"
     file.Close()
 
     // script and footer
     let file1 = new IO.StreamWriter (fname, true)
-    let wr1 = fun (s: string) -> file1.WriteLine s
+    let wr1 = string >> file1.WriteLine
     createScript wr1
     wr1 "</html>"
 
