@@ -1,6 +1,6 @@
-# Software Development 2017 - Exercise 2: /95
+# Software Development 2017 - Exercise 2: /100
 
-## GitLab: 5/20
+## GitLab: 11/25
   * Understands basic Git usage
     + Yes, good structuring of repo.
     + Good explanation in report.
@@ -16,7 +16,7 @@
   * Layout of pdf
     - some of the answers cannot be read because they overstep the boundaries of the page
 
-## Enumerate: 0/25
+## Enumerate: 5/25
   * Understands generics
     + yes, looks good
   * PairwiseDistinct works properly
@@ -31,5 +31,4 @@
   * Answers quesions about .gitignore
     + yes, correct
   * Follows our template
-    + Yes, or something of similar quality
-
+    + Yes, or something of <i>similar</i> quality

@@ -17,14 +17,14 @@ let mark_feedback_unsure = "?"
 type Position = int
 
 
-// Error handling:
-// Print custom error message, then terminate program
+// Types for error handling:
 type MyException =
     | MyIOException     of string
     | MyFormatException of string
     | MyParseException  of string
     | MyHTMLException   of string
 
+// Print error message, then terminate program
 let errorHandler (err: MyException, linenumber: int) =
     Console.ForegroundColor <- ConsoleColor.Red
     match err with
@@ -39,6 +39,7 @@ let errorHandler (err: MyException, linenumber: int) =
     Console.ResetColor()
     Environment.Exit 1
 
+// Print error message, but continue program
 let warningHandler (err: MyException, linenumber: int) =
     Console.ForegroundColor <- ConsoleColor.Cyan
     match err with
@@ -61,7 +62,7 @@ let (|StartsWith|_|) (s: string) (p: string) =
 
 
 // IO functions:
-// Convenient wrappers for file-IO
+// Convenient wrappers for file I/O
 let openFile (path: string) (extension: string) =
     if not <| IO.File.Exists path then
         let str = "The file does not exist"
@@ -90,13 +91,14 @@ let rec writeFile (path: string) =
         IO.File.Delete(path)
     new IO.StreamWriter(path, true)
 
+// this function is not currently being used
 let appendFile (source: IO.StreamReader) (destination: IO.StreamWriter) =
     while not <| source.EndOfStream do
         source.ReadLine() |> destination.WriteLine
 
 
 // Formatted types:
-// Store each line from the file in a formatted buffer of records
+// Store each line from the file as a record in a formatted list
 type ContentQuestion = {contents: string
                         position: Position}
 type ContentFeedback = {mark: string
@@ -215,51 +217,66 @@ type ParsedFile =
 
 
 // Parse functions:
-// Functions to parse a formatted file into a parsed file
-let headerTotal = ref 0
-let total = ref 0
-let obtained = ref 0
-
-let rec parseFile' (file: FormattedContent list) =
+// Functions to parse a formatted file into a parsed file.
+// Parameters:
+// 'file' - the formatted (lexer) list to be parsed
+// 'total' - will contain the total maximum number of points
+// 'obtained' - will contain the total obtained number of points
+let rec parseFile' (file: FormattedContent list) (obtained: int ref)
+                   (total: int ref) =
     match file with
     | [] -> []
     | (FormattedSection s as x) :: xs ->
         obtained := !obtained + s.points_given
         total := !total + s.points_total
 
-        PSection(s, parseSection xs Empty) :: parseFile' xs
+        PSection(s, parseSection xs Section s.depth s.position)
+        :: parseFile' xs obtained total
 
-    | _ as x :: xs -> parseFile' xs
+    | _ as x :: xs -> parseFile' xs obtained total
 
-and parseSection (file: FormattedContent list)
-                 (last: FormatLineType) =
+and parseSection (file: FormattedContent list) (last: FormatLineType)
+                 (lastDepth: int) (lastLine: int) =
+    let rec getNHashes = function
+        | 0 -> ""
+        | n -> "#" + getNHashes (n - 1)
     match file with
     | [] -> []
     | (FormattedSection s as x) :: xs ->
         if last = Section then
             let str = "Section is empty"
-            warningHandler(MyParseException(str), s.position)
-            []
-        else []
+            warningHandler(MyParseException(str), lastLine)
+        elif s.depth > lastDepth then
+            let str = "Section hierarchy must be least '"
+                      + (getNHashes lastDepth) + "'"
+            errorHandler(MyParseException(str), s.position)
+        []
     | (FormattedQuestion q as x) :: xs ->
-        PQuestion(q, parseQuestion xs) :: parseSection xs Question
+        PQuestion(q, parseQuestion xs false)
+        :: parseSection xs Question lastDepth lastLine
     | (FormattedFeedback f as x) :: xs ->
         if last = Section then
             let str = "Feedback given without a question, " +
                       "default question will be added"
             warningHandler(MyParseException(str), f.position)
             let question = {contents = "Comments:"; position = f.position}
-            PQuestion(question, parseQuestion xs) :: parseSection xs Question
-        else parseSection xs last
-    | (_ as x) :: xs -> parseSection xs last
+            PQuestion(question, parseQuestion xs false)
+            :: parseSection xs Question lastDepth lastLine
+        else parseSection xs last lastDepth lastLine
+    | _ as x :: xs -> parseSection xs last lastDepth lastLine
 
-and parseQuestion (file: FormattedContent list) =
+and parseQuestion (file: FormattedContent list) (answered: bool) =
+    let questionNotAnswered(pos: int) =
+        let str = "Question has not been answered"
+        warningHandler(MyParseException(str), pos)
     match file with
     | [] -> []
-    | (FormattedSection s as x) :: xs -> []
-    | (FormattedQuestion q as x) :: xs -> []
-    | (FormattedFeedback f as x) :: xs -> f :: parseQuestion xs
-    | _ as x :: xs -> parseQuestion xs
+    | FormattedSection s as x :: xs    ->
+        (if not answered then questionNotAnswered (s.position)); []
+    | FormattedQuestion q as y :: ys   ->
+        (if not answered then questionNotAnswered (q.position)); []
+    | (FormattedFeedback f as x) :: xs -> f :: parseQuestion xs true
+    | _ as x :: xs -> parseQuestion xs answered
 
 
 // find and return the file header, if such one exists
@@ -279,13 +296,17 @@ let rec containsHeader = function
 
 // wrapper function for parsing a file
 let parseFile (file: FormattedContent list) =
+    let headerTotal = ref 0
+    let total = ref 0
+    let obtained = ref 0
     let header = containsHeader (file, false, None)
     match header with
     | Some(lst) ->
+
         match lst with
         | (FormattedSection x) :: xs ->
             headerTotal := x.points_total
-            let pFile = PFileHeader(x, parseFile' xs)
+            let pFile = PFileHeader(x, parseFile' xs obtained total)
             if !obtained > !headerTotal then
                 let str = sprintf "Points don't add up: (%i/%i)"
                               !obtained !headerTotal
@@ -295,24 +316,28 @@ let parseFile (file: FormattedContent list) =
                           "expected " + (string !headerTotal) +
                           " but got " + (string !total)
                 errorHandler(MyParseException(str), 1)
-            pFile
+            (pFile, obtained, total)
+
         | (FormattedEmpty) :: xs ->
             let str = "The file was empty"
             errorHandler (MyIOException(str), 0)
-            PFileNoHeader([])
+            (PFileNoHeader([]), ref 0, ref 0) // will never return
+
         | (FormattedError e) :: xs ->
             errorHandler(e, 0)
-            PFileNoHeader([])
+            (PFileNoHeader([]), ref 0, ref 0) // will never return
+
         | _ ->
             let str = "Some error occured"
             errorHandler (MyIOException(str), 0)
-            PFileNoHeader([])
-    | None          ->
-        let pFile = PFileNoHeader(parseFile' file)
+            (PFileNoHeader([]), ref 0, ref 0) // will never return
+
+    | None ->
+        let pFile = PFileNoHeader(parseFile' file obtained total)
         if !obtained > !total then
             let str = sprintf "Points don't add up: (%i/%i)" !obtained !total
             errorHandler(MyParseException(str), 1)
-        pFile
+        (pFile, obtained, total)
 
 
 // HTML-generation
@@ -387,7 +412,7 @@ let rec createBody (parser: pType) (wr: wrType) =
 // HTML-Parsing:
 // Convert a parsed file structure into an html-document,
 // and stream it into a file.
-let htmlParser (parser: ParsedFile) =
+let htmlParser (parser: ParsedFile, obtained: int ref, total: int ref) =
     let mutable title = ""
     let mutable fname = ""
     let mutable header = Unchecked.defaultof<ContentSection>
@@ -410,8 +435,8 @@ let htmlParser (parser: ParsedFile) =
         parseList <- lst
 
     // file stream
-    let file = writeFile(fname)
-    let wr = fun (s: string) -> file.WriteLine s
+    let file = writeFile(IO.Path.Combine("out", fname))
+    let wr = string >> file.WriteLine
 
     // header
     createHeader fname wr
@@ -424,14 +449,11 @@ let htmlParser (parser: ParsedFile) =
     createBody parseList wr
     wr <| sprintf "<hr><h4>Points in total: %i/%i</h4>" !obtained !total
     wr "</body>"
-    file.Close()
 
     // script and footer
-    let file1 = new IO.StreamWriter (fname, true)
-    let wr1 = string >> file1.WriteLine
-    createScript wr1
-    wr1 "</html>"
+    createScript wr
+    wr "</html>"
 
     // end of parse.
-    file1.Close()
-
+    file.Close()
+    printfn "File %s successfully created." <| "out/" + fname
