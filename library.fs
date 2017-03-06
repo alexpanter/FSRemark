@@ -240,43 +240,50 @@ and parseSection (file: FormattedContent list) (last: FormatLineType)
     let rec getNHashes = function
         | 0 -> ""
         | n -> "#" + getNHashes (n - 1)
+    let notifyEmptySection() =
+        let str = "Section is empty"
+        warningHandler(MyParseException(str), lastLine)
+
     match file with
-    | [] -> []
+    | [] -> (if last = Section then notifyEmptySection()); []
+
     | (FormattedSection s as x) :: xs ->
         if last = Section then
-            let str = "Section is empty"
-            warningHandler(MyParseException(str), lastLine)
+            notifyEmptySection()
         elif s.depth > lastDepth then
             let str = "Section hierarchy must be least '"
                       + (getNHashes lastDepth) + "'"
             errorHandler(MyParseException(str), s.position)
         []
+
     | (FormattedQuestion q as x) :: xs ->
-        PQuestion(q, parseQuestion xs false)
+        PQuestion(q, parseQuestion xs false q.position)
         :: parseSection xs Question lastDepth lastLine
+
     | (FormattedFeedback f as x) :: xs ->
         if last = Section then
             let str = "Feedback given without a question, " +
                       "default question will be added"
             warningHandler(MyParseException(str), f.position)
             let question = {contents = "Comments:"; position = f.position}
-            PQuestion(question, parseQuestion xs false)
+            PQuestion(question, parseQuestion xs false f.position)
             :: parseSection xs Question lastDepth lastLine
         else parseSection xs last lastDepth lastLine
+
     | _ as x :: xs -> parseSection xs last lastDepth lastLine
 
-and parseQuestion (file: FormattedContent list) (answered: bool) =
-    let questionNotAnswered(pos: int) =
+and parseQuestion (file: FormattedContent list) (answered: bool) (lastLine: int) =
+    let questionNotAnswered() =
         let str = "Question has not been answered"
-        warningHandler(MyParseException(str), pos)
+        warningHandler(MyParseException(str), lastLine)
     match file with
     | [] -> []
     | FormattedSection s as x :: xs    ->
-        (if not answered then questionNotAnswered (s.position)); []
+        (if not answered then questionNotAnswered ()); []
     | FormattedQuestion q as y :: ys   ->
-        (if not answered then questionNotAnswered (q.position)); []
-    | (FormattedFeedback f as x) :: xs -> f :: parseQuestion xs true
-    | _ as x :: xs -> parseQuestion xs answered
+        (if not answered then questionNotAnswered ()); []
+    | (FormattedFeedback f as x) :: xs -> f :: parseQuestion xs true lastLine
+    | _ as x :: xs -> parseQuestion xs answered lastLine
 
 
 // find and return the file header, if such one exists
