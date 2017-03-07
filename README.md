@@ -1,28 +1,33 @@
-# FSharpRemarks
+# FSRemark
 
-### Summary:
-A humble attempt at recreating the Remarks application:
+## Summary:
+A humble attempt at recreating the Remarks application using the functional-first
+.NET language F#. The original application can be found here:
 [DIKU-EDU/remarks](https://github.com/DIKU-EDU/remarks "DIKU-EDU/remarks")
-
-### Motivation:
+<br>
+<br>
+## Motivation:
 This project aims to ease the parsing of remark files by utilizing the built-in
 string functionalities provided by F# and the .NET platform.
 
-In contrary to the original `remarks` application, `FSharpRemarks` is designed
+In contrary to the original `remark` application, `FSRemark` is designed
 to be a simple console tool which, given a remarks (.mrk) file as input
 produces an html document, no questions asked.
 
-__To attain these goals__ :
-* All syntax errors in a `remarks` file are reported with an exact line number
-  and a short description of the error.
+### __To attain these goals__ :
+* All syntax errors in a `remark` file are reported with an exact line number
+  and a short description of the error
 * The application will automatically calculate the student's points in total,
-  and add them to the html file.
+  and add them to the html file
 * If the maximum number of points for each task do not add up to the provided
-  total, an error will be printed with the difference.
-* In contrast to the original design, the header line is now optional.
+  total, an error will be printed with the difference
+* In contrast to the original design, the header line is now optional
+* All warnings are printed with cyan font color
+* All errors are printed with red font color
+* A prompt will appear it the target `.html` file already exists
 
 
-### Technicalities:
+## Technicalities:
 The application works by first generating a list of lexer tokens from the file,
 ie. a list of struct unions (in proper `F#` lingo).
 
@@ -31,8 +36,9 @@ using list-recursion.
 
 Finally, the created syntax tree is parsed into a html, and streamed to a target file,
 together with some css and javascript.
-
-### Credits:
+<br>
+<br>
+## Credits:
 _This project is by no account officially related to Remarks_.
 
 All credits go to the amazing people at [DIKU-EDU](https://github.com/DIKU-EDU "DIKU-EDU")
