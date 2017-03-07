@@ -13,7 +13,7 @@ In contrary to the original `remarks` application, `FSharpRemarks` is designed
 to be a simple console tool which, given a remarks (.mrk) file as input
 produces an html document, no questions asked.
 
-__To attain these goals__ :
+### __To attain these goals__ :
 * All syntax errors in a `remarks` file are reported with an exact line number
   and a short description of the error
 * The application will automatically calculate the student's points in total,
@@ -25,7 +25,7 @@ __To attain these goals__ :
 * All errors are printed with red font color
 * A prompt will appear it the target `.html` file already exists
 
-<br>
+
 ## Technicalities:
 The application works by first generating a list of lexer tokens from the file,
 ie. a list of struct unions (in proper `F#` lingo).
