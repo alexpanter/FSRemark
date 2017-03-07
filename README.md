@@ -1,7 +1,8 @@
-# FSharpRemark
+# FSRemark
 
 ## Summary:
-A humble attempt at recreating the Remarks application:
+A humble attempt at recreating the Remarks application using the functional-first
+.NET language F#. The original application can be found here:
 [DIKU-EDU/remarks](https://github.com/DIKU-EDU/remarks "DIKU-EDU/remarks")
 <br>
 <br>
@@ -9,12 +10,12 @@ A humble attempt at recreating the Remarks application:
 This project aims to ease the parsing of remark files by utilizing the built-in
 string functionalities provided by F# and the .NET platform.
 
-In contrary to the original `remarks` application, `FSharpRemarks` is designed
+In contrary to the original `remark` application, `FSRemark` is designed
 to be a simple console tool which, given a remarks (.mrk) file as input
 produces an html document, no questions asked.
 
 ### __To attain these goals__ :
-* All syntax errors in a `remarks` file are reported with an exact line number
+* All syntax errors in a `remark` file are reported with an exact line number
   and a short description of the error
 * The application will automatically calculate the student's points in total,
   and add them to the html file
