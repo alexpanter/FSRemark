@@ -1,4 +1,4 @@
-# FSharpRemarks
+# FSharpRemark
 
 ## Summary:
 A humble attempt at recreating the Remarks application:
