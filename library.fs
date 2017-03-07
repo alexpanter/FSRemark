@@ -442,7 +442,7 @@ let htmlParser (parser: ParsedFile, obtained: int ref, total: int ref) =
         parseList <- lst
 
     // file stream
-    let file = writeFile(IO.Path.Combine("out", fname))
+    let file = writeFile(fname)
     let wr = string >> file.WriteLine
 
     // header
@@ -463,4 +463,4 @@ let htmlParser (parser: ParsedFile, obtained: int ref, total: int ref) =
 
     // end of parse.
     file.Close()
-    printfn "File %s successfully created." <| "out/" + fname
+    printfn "File '%s' successfully created." fname
