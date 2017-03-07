@@ -73,7 +73,7 @@ let openFile (path: string) (extension: string) =
         errorHandler (MyIOException(str), 0)
         null
     else
-        new System.IO.StreamReader(path)
+        new System.IO.StreamReader(path, Text.Encoding.UTF8)
 
 let readLine(f: IO.StreamReader) =
     if not <| f.EndOfStream then
@@ -89,7 +89,7 @@ let rec writeFile (path: string) =
                 let str = "No output file was produced!"
                 errorHandler(MyIOException(str), 0)
         IO.File.Delete(path)
-    new IO.StreamWriter(path, true)
+    new IO.StreamWriter(path, true, Text.Encoding.UTF8)
 
 // this function is not currently being used
 let appendFile (source: IO.StreamReader) (destination: IO.StreamWriter) =

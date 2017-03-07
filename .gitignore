@@ -9,5 +9,5 @@ tanker
 bin/
 obj/
 
-# ignore backup files
+# ignore Emacs autosave files
 \#*#
