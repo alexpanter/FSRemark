@@ -363,14 +363,16 @@ let createFooter (wr: wrType) =
 
 let createStyle (wr: wrType) =
     wr "<style>"
-    use style = openFile (IO.Path.Combine("html","style.css")) ".css"
+    use style = openFile (IO.Path.Combine(__SOURCE_DIRECTORY__,
+                                          "html","style.css")) ".css"
     while not <| style.EndOfStream do
         wr <| style.ReadLine()
     wr "</style>"
 
 let createScript (wr: wrType) =
     wr "<script>"
-    use script = openFile (IO.Path.Combine("html","script.js")) ".js"
+    use script = openFile (IO.Path.Combine(__SOURCE_DIRECTORY__,
+                                           "html","script.js")) ".js"
     while not <| script.EndOfStream do
         wr <| script.ReadLine()
     wr "</script>"
