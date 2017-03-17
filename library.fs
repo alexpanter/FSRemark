@@ -134,7 +134,7 @@ let formatHandleError (str: string, linenumber: int) =
     FormattedEmpty
 
 let rec formatFeedback (line: string) (linenumber: int) =
-    let pattern = "^[\s]*([\+\?-])[ ]+([\w\W\d\s]+)$"
+    let pattern = "^[\s]*([\+\?-])[ ]+([\w\W\d\s\":;\(\)\{\}\[\]\-\^<>.,]+)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
         match res.[1] with
@@ -161,7 +161,7 @@ let rec formatQuestion (line: string) (linenumber: int) =
         ("Section question is malformed", linenumber) |> formatHandleError
 
 let formatSection (line: string) (linenumber: int) =
-    let pattern = "^([#]+)[ ]+([\w\d ,-]+): ([\d]*)/([1-9]+[\d]*)$"
+    let pattern = "^([#]+)[ ]+([\w\d ,-]+): ([\d]*)/([\d]+)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
         FormattedSection({depth = int (res.[1].Length)
