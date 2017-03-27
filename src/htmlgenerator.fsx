@@ -10,16 +10,16 @@ open FileIO
 open Error
 
 
-let createHeader (title: string) (wr: wrType) =
+let createHeader (title: string) (wr: WrType) =
     wr "<!DOCTYPE html>"
     wr "<html>"
     wr "<head>"
     wr <| "<title>" + title + "</title>"
 
-let createFooter (wr: wrType) =
+let createFooter (wr: WrType) =
     wr "</html>"
 
-let createStyle (wr: wrType) =
+let createStyle (wr: WrType) =
     wr "<style>"
     use style = openFile (IO.Path.Combine(__SOURCE_DIRECTORY__,
                                           "html","style.css")) ".css"
@@ -27,7 +27,7 @@ let createStyle (wr: wrType) =
         wr <| style.ReadLine()
     wr "</style>"
 
-let createScript (wr: wrType) =
+let createScript (wr: WrType) =
     wr "<script>"
     use script = openFile (IO.Path.Combine(__SOURCE_DIRECTORY__,
                                            "html","script.js")) ".js"
@@ -35,13 +35,13 @@ let createScript (wr: wrType) =
         wr <| script.ReadLine()
     wr "</script>"
 
-let rec createBody (parser: pType) (wr: wrType) =
+let rec createBody (parser: PType) (wr: WrType) =
     let rec appendSection = function
         | [] -> ()
         | PSection(s, ql) :: xs ->
             wr "<div show=\"0\">"
             wr "<button class=\"button bt-section\" onclick=\"expandSection(this)\">"
-            wr s.title
+            wr s.Title
             wr "</button><div>"
             appendQuestion ql
             wr "</div></div>"
@@ -52,7 +52,7 @@ let rec createBody (parser: pType) (wr: wrType) =
         | PQuestion(q, fl) :: xs ->
             wr "<div show=\"0\">"
             wr "<button class=\"button bt-question\" onclick=\"expandQuestion(this)\">"
-            wr q.contents
+            wr q.Contents
             wr "</button><div>"
             appendFeedback fl
             wr "</div></div>"
@@ -62,14 +62,14 @@ let rec createBody (parser: pType) (wr: wrType) =
         | [] -> ()
         | x :: xs ->
             wr "<div class=\"mark-container\"><button class=\"mark "
-            match x.mark with
+            match x.Mark with
                 | "+" -> wr "mark-good\">"
                 | "-" -> wr "mark-bad\">"
                 | "?" -> wr "mark-unsure\">"
                 | _ -> errorHandler(MyHTMLException("Invalid feedback mark!"), 0)
-            wr x.mark
+            wr x.Mark
             wr "</button>"
-            wr x.feedback
+            wr x.Feedback
             wr "</div>"
             appendFeedback xs
 
@@ -89,7 +89,7 @@ let htmlParser (parser: ParsedFile, obtained: int ref, total: int ref) =
     | PFileHeader(sect, lst) ->
         printf "Enter a name for the output HTML-file (without '.html'): "
         fname <- (Console.ReadLine() + ".html").Replace(" ", "")
-        title <- sect.title
+        title <- sect.Title
         header <- sect
         parseList <- lst
     | PFileNoHeader(lst) ->
@@ -97,8 +97,8 @@ let htmlParser (parser: ParsedFile, obtained: int ref, total: int ref) =
         fname <- Console.ReadLine()
         printf "Enter a name for the output HTML-file: "
         title <- Console.ReadLine()
-        header <- {depth = -1; title = title; points_given = -1
-                   points_total = -1; position = -1}
+        header <- {Depth = -1; Title = title; PointsGiven = -1
+                   PointsTotal = -1; Position = -1}
         parseList <- lst
 
     // file stream

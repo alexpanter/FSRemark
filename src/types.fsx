@@ -2,11 +2,11 @@ module Types
 
 // Marks:
 // mark the beginning of a line
-let mark_section         = "#"
-let mark_question        = "*"
-let mark_feedback_good   = "+"
-let mark_feedback_bad    = "-"
-let mark_feedback_unsure = "?"
+let markSection         = "#"
+let markQuestion        = "*"
+let markFeedbackGood   = "+"
+let markFeedbackBad    = "-"
+let markFeedbackUnsure = "?"
 
 
 // Extended pattern:
@@ -31,16 +31,19 @@ type MyException =
 
 // Formatted types:
 // Store each line from the file as a record in a formatted list
-type ContentQuestion = {contents: string
-                        position: Position}
-type ContentFeedback = {mark: string
-                        feedback: string
-                        position: Position}
-type ContentSection = {depth: int
-                       title: string
-                       points_given: int
-                       points_total: int
-                       position: Position}
+type ContentQuestion = {Contents: string
+                        Position: Position}
+type ContentFeedback = {Mark: string
+                        Feedback: string
+                        Position: Position}
+type ContentSection = {Depth: int
+                       Title: string
+                       PointsGiven: int
+                       PointsTotal: int
+                       Position: Position}
+
+type ContentMetaAuthor = {Name: string}
+type ContentMetaGroup = {Name: string}
 
 type FormattedContent =
     | FormattedSection  of ContentSection
@@ -48,6 +51,8 @@ type FormattedContent =
     | FormattedFeedback of ContentFeedback
     | FormattedEmpty
     | FormattedError of MyException
+    | FormattedMetaAuthor of ContentMetaAuthor
+    | FormattedMetaGroup of ContentMetaGroup
 
 type FormattedFile =
     | FormattedLines of FormattedContent list
@@ -75,6 +80,6 @@ type ParsedFile =
 
 // HTML-generation
 // Functions to generate HTML content
-type wrType = string -> unit  // append a line (string) to the output file
-type pType = ParsedSection list
+type WrType = string -> unit  // append a line (string) to the output file
+type PType = ParsedSection list
 

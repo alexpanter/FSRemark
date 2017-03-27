@@ -21,15 +21,15 @@ let rec formatFeedback (line: string) (linenumber: int) =
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
         match res.[1] with
-        | "+" -> FormattedFeedback ({mark = mark_feedback_good
-                                     feedback = res.[2]
-                                     position = linenumber})
-        | "-" -> FormattedFeedback ({mark = mark_feedback_bad
-                                     feedback = res.[2]
-                                     position = linenumber})
-        | "?" -> FormattedFeedback ({mark = mark_feedback_unsure
-                                     feedback = res.[2]
-                                     position = linenumber})
+        | "+" -> FormattedFeedback ({Mark = markFeedbackGood
+                                     Feedback = res.[2]
+                                     Position = linenumber})
+        | "-" -> FormattedFeedback ({Mark = markFeedbackBad
+                                     Feedback = res.[2]
+                                     Position = linenumber})
+        | "?" -> FormattedFeedback ({Mark = markFeedbackUnsure
+                                     Feedback = res.[2]
+                                     Position = linenumber})
         | _   -> ("Internal error: Unexpected symbol in format feedback",
                   linenumber) |> formatHandleError
     else
@@ -39,7 +39,7 @@ let rec formatQuestion (line: string) (linenumber: int) =
     let pattern = "^[\s]*[\*][ ]+([\w\W\d\s]+)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
-        FormattedQuestion({contents = res.[1]; position = linenumber})
+        FormattedQuestion({Contents = res.[1]; Position = linenumber})
     else
         ("Section question is malformed", linenumber) |> formatHandleError
 
@@ -47,11 +47,11 @@ let formatSection (line: string) (linenumber: int) =
     let pattern = "^([#]+)[ ]+([\w\d ,-]+): ([\d]*)/([\d]+)$"
     if Regex.IsMatch(line, pattern) then
         let res = Regex.Split(line, pattern)
-        FormattedSection({depth = int (res.[1].Length)
-                          title = res.[2]
-                          points_given = try int (res.[3]) with | _ -> 0
-                          points_total = int (res.[4])
-                          position = linenumber})
+        FormattedSection({Depth = int (res.[1].Length)
+                          Title = res.[2]
+                          PointsGiven = try int (res.[3]) with | _ -> 0
+                          PointsTotal = int (res.[4])
+                          Position = linenumber})
     else
         ("Section header is malformed", linenumber) |> formatHandleError
 

@@ -20,10 +20,10 @@ let rec parseFile' (file: FormattedContent list) (obtained: int ref)
     match file with
     | [] -> []
     | (FormattedSection s as x) :: xs ->
-        obtained := !obtained + s.points_given
-        total := !total + s.points_total
+        obtained := !obtained + s.PointsGiven
+        total := !total + s.PointsTotal
 
-        PSection(s, parseSection xs Section s.depth s.position)
+        PSection(s, parseSection xs Section s.Depth s.Position)
         :: parseFile' xs obtained total
 
     | _ as x :: xs -> parseFile' xs obtained total
@@ -43,23 +43,23 @@ and parseSection (file: FormattedContent list) (last: FormatLineType)
     | (FormattedSection s as x) :: xs ->
         if last = Section then
             notifyEmptySection()
-        elif s.depth > lastDepth then
+        elif s.Depth > lastDepth then
             let str = "Section hierarchy must be least '"
                       + (getNHashes lastDepth) + "'"
-            errorHandler(MyParseException(str), s.position)
+            errorHandler(MyParseException(str), s.Position)
         []
 
     | (FormattedQuestion q as x) :: xs ->
-        PQuestion(q, parseQuestion xs false q.position)
+        PQuestion(q, parseQuestion xs false q.Position)
         :: parseSection xs Question lastDepth lastLine
 
     | (FormattedFeedback f as x) :: xs ->
         if last = Section then
             let str = "Feedback given without a question, " +
                       "default question will be added"
-            warningHandler(MyParseException(str), f.position)
-            let question = {contents = "Comments:"; position = f.position}
-            PQuestion(question, parseQuestion xs false f.position)
+            warningHandler(MyParseException(str), f.Position)
+            let question = {Contents = "Comments:"; Position = f.Position}
+            PQuestion(question, parseQuestion xs false f.Position)
             :: parseSection xs Question lastDepth lastLine
         else parseSection xs last lastDepth lastLine
 
@@ -105,7 +105,7 @@ let parseFile (file: FormattedContent list) =
 
         match lst with
         | (FormattedSection x) :: xs ->
-            headerTotal := x.points_total
+            headerTotal := x.PointsTotal
             let pFile = PFileHeader(x, parseFile' xs obtained total)
             if !obtained > !headerTotal then
                 let str = sprintf "Points don't add up: (%i/%i)"
