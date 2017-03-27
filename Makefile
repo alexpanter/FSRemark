@@ -6,10 +6,10 @@ UTIL=src/types.fsx src/fileio.fsx src/error.fsx
 LIBS=src/lexer.fsx src/parser.fsx src/htmlgenerator.fsx
 
 main: fsrlib
-	fsharpc src/$@.fsx
+	fsharpc --nologo src/$@.fsx
 
 fsrlib:
-	fsharpc -a $(UTIL) $(LIBS) -o $@.dll
+	fsharpc --nologo -a $(UTIL) $(LIBS) -o $@.dll
 
 clean:
 	rm -f *.dll

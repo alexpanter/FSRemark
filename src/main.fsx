@@ -8,7 +8,7 @@ open Lexer
 open Parser
 open HTMLGenerator
 
-// main 'does-it-all' function:
+// magic 'does-it-all' function:
 // lexer -> parser -> HTML
 let produceHTML (path: string) =
     (formatFile >> parseFile >> htmlParser) path
