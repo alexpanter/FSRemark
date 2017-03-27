@@ -1,17 +1,24 @@
-#load "library.fs"
-
+// system includes
 open System.IO
 open System.Collections.Generic
 
+// custom includes
+#r "fsrlib.dll"
+open Lexer
+open Parser
+open HTMLGenerator
+
+// main 'does-it-all' function:
+// lexer -> parser -> HTML
 let produceHTML (path: string) =
-    (Library.formatFile >> Library.parseFile >> Library.htmlParser) path
+    (formatFile >> parseFile >> htmlParser) path
 
 let performPassTests () =
     let files = Directory.EnumerateFiles (Path.Combine("tests", "pass"))
     let enum = files.GetEnumerator()
     while enum.MoveNext() do
         try
-            enum.Current |> Library.formatFile |> Library.parseFile |> ignore
+            enum.Current |> formatFile |> parseFile |> ignore
             printfn "SUCCESS: %s" enum.Current
         with
             | _ -> printfn "FAILED: %s" enum.Current
