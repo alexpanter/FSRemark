@@ -16,7 +16,7 @@ open Error
 // 'total' - will contain the total maximum number of points
 // 'obtained' - will contain the total obtained number of points
 let rec parseFile' (file: FormattedContent list) (obtained: int ref)
-                   (total: int ref) =
+                   (total: int ref) (meta: MetaContent ref) =
     match file with
     | [] -> []
     | (FormattedSection s as x) :: xs ->
@@ -24,9 +24,22 @@ let rec parseFile' (file: FormattedContent list) (obtained: int ref)
         total := !total + s.PointsTotal
 
         PSection(s, parseSection xs Section s.Depth s.Position)
-        :: parseFile' xs obtained total
+        :: parseFile' xs obtained total meta
 
-    | _ as x :: xs -> parseFile' xs obtained total
+    | (FormattedMetaAuthor a as x) :: xs ->
+        (!meta).Authors <- (!meta).Authors @ [a]
+        parseFile' xs obtained total meta
+
+    | (FormattedMetaGroup g as x) :: xs ->
+        if (!meta).Group <> None then
+            let str = "Group name is defined twice"
+            errorHandler(MyParseException(str), g.Position)
+            [] // dummy return value
+        else
+            (!meta).Group <- Some(g)
+            parseFile' xs obtained total meta
+
+    | _ as x :: xs -> parseFile' xs obtained total meta
 
 and parseSection (file: FormattedContent list) (last: FormatLineType)
                  (lastDepth: int) (lastLine: int) =
@@ -100,13 +113,14 @@ let parseFile (file: FormattedContent list) =
     let total = ref 0
     let obtained = ref 0
     let header = containsHeader (file, false, None)
+    let meta = ref {Authors = []; Group = None}
     match header with
     | Some(lst) ->
 
         match lst with
         | (FormattedSection x) :: xs ->
             headerTotal := x.PointsTotal
-            let pFile = PFileHeader(x, parseFile' xs obtained total)
+            let pFile = PFileHeader(x, parseFile' xs obtained total meta)
             if !obtained > !headerTotal then
                 let str = sprintf "Points don't add up: (%i/%i)"
                               !obtained !headerTotal
@@ -116,25 +130,25 @@ let parseFile (file: FormattedContent list) =
                           "expected " + (string !headerTotal) +
                           " but got " + (string !total)
                 errorHandler(MyParseException(str), 1)
-            (pFile, obtained, total)
+            (pFile, obtained, total, meta)
 
         | (FormattedEmpty) :: xs ->
             let str = "The file was empty"
             errorHandler (MyIOException(str), 0)
-            (PFileNoHeader([]), ref 0, ref 0) // will never return
+            (PFileNoHeader([]), ref 0, ref 0, meta) // will never return
 
         | (FormattedError e) :: xs ->
             errorHandler(e, 0)
-            (PFileNoHeader([]), ref 0, ref 0) // will never return
+            (PFileNoHeader([]), ref 0, ref 0, meta) // will never return
 
         | _ ->
             let str = "Some error occured"
             errorHandler (MyIOException(str), 0)
-            (PFileNoHeader([]), ref 0, ref 0) // will never return
+            (PFileNoHeader([]), ref 0, ref 0, meta) // will never return
 
     | None ->
-        let pFile = PFileNoHeader(parseFile' file obtained total)
+        let pFile = PFileNoHeader(parseFile' file obtained total meta)
         if !obtained > !total then
             let str = sprintf "Points don't add up: (%i/%i)" !obtained !total
             errorHandler(MyParseException(str), 1)
-        (pFile, obtained, total)
+        (pFile, obtained, total, meta)

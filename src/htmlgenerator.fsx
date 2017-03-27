@@ -9,6 +9,11 @@ open Types
 open FileIO
 open Error
 
+let createMetaContent (meta: MetaContent ref) (wr: WrType) =
+    List.iter (fun (a: ContentMetaAuthor) -> wr a.Name) (!meta).Authors
+    match (!meta).Group with
+        | None -> ()
+        | Some g -> wr g.Name
 
 let createHeader (title: string) (wr: WrType) =
     wr "<!DOCTYPE html>"
@@ -79,11 +84,12 @@ let rec createBody (parser: PType) (wr: WrType) =
 // HTML-Parsing:
 // Convert a parsed file structure into an html-document,
 // and stream it into a file.
-let htmlParser (parser: ParsedFile, obtained: int ref, total: int ref) =
+let htmlParser (parser: ParsedFile, obtained: int ref,
+                total: int ref, meta: MetaContent ref) =
     let mutable title = ""
     let mutable fname = ""
     let mutable header = Unchecked.defaultof<ContentSection>
-    let mutable parseList = Unchecked.defaultof<ParsedSection list>
+    let mutable parseList = []
 
     match parser with
     | PFileHeader(sect, lst) ->
@@ -112,6 +118,7 @@ let htmlParser (parser: ParsedFile, obtained: int ref, total: int ref) =
 
     // body
     wr "<body>"
+    createMetaContent meta wr
     wr <| "<h1>" + title + "</h1><hr>"
     createBody parseList wr
     wr <| sprintf "<hr><h4>Points in total: %i/%i</h4>" !obtained !total

@@ -55,6 +55,22 @@ let formatSection (line: string) (linenumber: int) =
     else
         ("Section header is malformed", linenumber) |> formatHandleError
 
+let formatMeta (line: string) (linenumber: int) =
+    let castError() =
+        ("Meta content is malformed", linenumber) |> formatHandleError
+    let pattern = "^.([\w]+): ([\w ]+)$"
+    if Regex.IsMatch(line, pattern) then
+        let res = Regex.Split(line, pattern)
+        match res.[1] with
+            | "author" -> FormattedMetaAuthor({Name = res.[2]
+                                               Position = linenumber})
+            | "group" -> FormattedMetaGroup({Name = res.[2]
+                                             Position = linenumber})
+            | _ -> castError()
+    else
+        castError()
+
+
 let rec formatGetType (linenumber: int) = function
     | ""                  -> FormatLineType.Empty
     | StartsWith " " rest -> formatGetType linenumber rest
@@ -63,9 +79,10 @@ let rec formatGetType (linenumber: int) = function
     | StartsWith "-" rest -> FormatLineType.Feedback
     | StartsWith "?" rest -> FormatLineType.Feedback
     | StartsWith "*" rest -> FormatLineType.Question
+    | StartsWith "." rest -> FormatLineType.Meta
     | _ ->
         ("Invalid line", linenumber) |> formatHandleError |> ignore
-        FormatLineType.Empty
+        FormatLineType.Empty // dummy return value
 
 let formatFile (path: string) =
     let file = openFile path ".mrk"
@@ -81,5 +98,7 @@ let formatFile (path: string) =
                 formatQuestion s linenumber :: inner(linenumber + 1)
             | FormatLineType.Feedback ->
                 formatFeedback s linenumber :: inner(linenumber + 1)
+            | FormatLineType.Meta     ->
+                formatMeta s linenumber :: inner(linenumber + 1)
         | None -> []
     inner(1)

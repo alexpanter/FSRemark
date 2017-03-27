@@ -42,8 +42,15 @@ type ContentSection = {Depth: int
                        PointsTotal: int
                        Position: Position}
 
-type ContentMetaAuthor = {Name: string}
-type ContentMetaGroup = {Name: string}
+type ContentMetaAuthor = {Name: string
+                          Position: Position}
+type ContentMetaGroup = {Name: string
+                         Position: Position}
+
+// meta content attached to a remarks file
+// should be of the form '.author: <name>', '.group: <name>', etc.
+type MetaContent = {mutable Authors: ContentMetaAuthor list
+                    mutable Group: ContentMetaGroup option}
 
 type FormattedContent =
     | FormattedSection  of ContentSection
@@ -62,6 +69,7 @@ type FormatLineType =
     | Question
     | Feedback
     | Empty
+    | Meta
 
 
 // Parse types:
