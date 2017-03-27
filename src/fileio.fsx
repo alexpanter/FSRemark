@@ -14,11 +14,11 @@ open Error
 // Convenient wrappers for file I/O
 let openFile (path: string) (extension: string) =
     if not <| IO.File.Exists path then
-        let str = "The file does not exist"
+        let str = sprintf "File '%s' does not exist" path
         errorHandler (MyIOException(str), 0)
         null
     else if IO.Path.GetExtension (path) <> extension then
-        let str = "The file must have the "+extension+" extension"
+        let str = "File must have the "+extension+" extension"
         errorHandler (MyIOException(str), 0)
         null
     else
@@ -31,7 +31,7 @@ let readLine(f: IO.StreamReader) =
 
 let rec writeFile (path: string) =
     if IO.File.Exists(path) then
-        printf "File '%s' already exists. Overwrite? (Y/N) " path
+        printf "Overwrite '%s'? (Y/N) " path
         match Console.ReadLine() with
             | "y" | "Y" -> ()
             | "n" | "N" | _ ->
