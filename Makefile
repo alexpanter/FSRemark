@@ -14,5 +14,5 @@ fsrlib:
 clean:
 	rm -f *.dll
 	rm -f main.exe
-	rm -rf bin/
-	rm -rf obj/
+	rm -rf src/bin/
+	rm -rf src/obj/
